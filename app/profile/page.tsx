@@ -2,7 +2,7 @@
 
 import { useEffect, useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import {
   ArrowLeft,
   Camera,
@@ -18,53 +18,72 @@ import {
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 
-const container = {
+// Framer Motion variants
+const container: Variants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.07, delayChildren: 0.15 },
+  show: { 
+    opacity: 1, 
+    transition: { staggerChildren: 0.07, delayChildren: 0.15 } 
   },
 };
 
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 20, scale: 0.98 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 200, damping: 25 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1, 
+    transition: { type: "spring", stiffness: 200, damping: 25 } 
   },
 };
 
-const healthStats = [
+// Typed health stats
+interface HealthStat {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  color: string;
+  bg: string;
+}
+
+const healthStats: HealthStat[] = [
   { icon: Heart, label: "Heart Rate", value: "72 bpm", color: "text-red-500", bg: "bg-red-100" },
   { icon: Droplets, label: "Blood Type", value: "O+", color: "text-blue-500", bg: "bg-blue-100" },
   { icon: Activity, label: "BP", value: "120/80", color: "text-indigo-500", bg: "bg-indigo-100" },
   { icon: Pill, label: "Allergies", value: "None", color: "text-amber-500", bg: "bg-amber-100" },
 ];
 
+// Typed user object
+interface User {
+  name: string;
+  email: string;
+  mobile: string;
+  image?: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string; mobile: string; image?: string } | null>(null);
-  const [tempUser, setTempUser] = useState<{ name: string; email: string; mobile: string; image?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [tempUser, setTempUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userProfile");
     if (storedUser) {
-      const parsed = JSON.parse(storedUser);
+      const parsed: User = JSON.parse(storedUser);
       setUser(parsed);
       setTempUser(parsed);
+      setImagePreview(parsed.image || null);
     }
   }, []);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files && e.target.files[0] && tempUser) {
       const file = e.target.files[0];
       const url = URL.createObjectURL(file);
       setImagePreview(url);
-      if (tempUser) setTempUser({ ...tempUser, image: url });
+      setTempUser({ ...tempUser, image: url });
     }
   };
 
@@ -95,16 +114,21 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-blue-50 pb-24">
       {/* HEADER */}
-      <motion.div className="relative h-72 md:h-96 overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+      <motion.div
+        className="relative h-72 md:h-96 overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-blue-200 via-blue-100 to-white" />
 
-        {/* SLOW ECG PULSE */}
+        {/* Slow ECG Pulse */}
         <motion.svg
           viewBox="0 0 800 100"
           className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[300%] opacity-20"
           initial={{ x: "-50%" }}
           animate={{ x: "0%" }}
-          transition={{ repeat: Infinity, duration: 15, ease: "linear" }} // slow ECG
+          transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
         >
           <polyline
             fill="none"
@@ -134,7 +158,11 @@ export default function ProfilePage() {
 
         {/* Back button */}
         <div className="absolute top-0 left-0 p-4 z-10">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center"
+          >
             <ArrowLeft size={20} className="text-blue-700" />
           </motion.button>
         </div>
@@ -143,7 +171,12 @@ export default function ProfilePage() {
       {/* CONTENT */}
       <div className="relative max-w-xl mx-auto px-4">
         {/* Avatar */}
-        <motion.div className="absolute -top-24 left-1/2 -translate-x-1/2" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }}>
+        <motion.div
+          className="absolute -top-24 left-1/2 -translate-x-1/2"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200 }}
+        >
           <div className="relative cursor-pointer">
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
@@ -152,19 +185,34 @@ export default function ProfilePage() {
               onClick={() => editing && document.getElementById("avatarInput")?.click()}
             >
               <img
-                src={imagePreview || tempUser.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(tempUser.name)}&background=60a5fa&color=ffffff&size=256`}
+                src={
+                  imagePreview ||
+                  tempUser.image ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    tempUser.name
+                  )}&background=60a5fa&color=ffffff&size=256`
+                }
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
             </motion.div>
 
-            {/* Camera overlay for editing */}
+            {/* Camera overlay */}
             {editing && (
-              <label htmlFor="avatarInput" className="absolute bottom-1 right-1 cursor-pointer w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg">
+              <label
+                htmlFor="avatarInput"
+                className="absolute bottom-1 right-1 cursor-pointer w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg"
+              >
                 <Camera size={18} />
               </label>
             )}
-            <input type="file" id="avatarInput" accept="image/*" onChange={handleImageChange} className="hidden" />
+            <input
+              type="file"
+              id="avatarInput"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
           </div>
         </motion.div>
 
@@ -181,7 +229,6 @@ export default function ProfilePage() {
               <h1 className="text-3xl font-bold text-blue-900">{user.name}</h1>
             )}
 
-            {/* Pencil icon only next to name */}
             <Edit3
               size={18}
               className="text-blue-700 cursor-pointer absolute right-0 -top-1"
@@ -189,7 +236,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Other fields */}
+          {/* Email & Mobile */}
           {editing ? (
             <div className="space-y-2 mt-2">
               <input
@@ -210,7 +257,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Soft Save / Cancel buttons */}
+          {/* Save / Cancel buttons */}
           {editing && (
             <div className="flex justify-center gap-2 mt-2">
               <Button
@@ -230,10 +277,22 @@ export default function ProfilePage() {
         </div>
 
         {/* Health Stats */}
-        <motion.div className="grid grid-cols-4 gap-3 mt-8" variants={container} initial="hidden" animate="show">
+        <motion.div
+          className="grid grid-cols-4 gap-3 mt-8"
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
           {healthStats.map((stat) => (
-            <motion.div key={stat.label} variants={item} whileHover={{ scale: 1.05 }} className="bg-white rounded-2xl p-3 text-center shadow">
-              <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-2`}>
+            <motion.div
+              key={stat.label}
+              variants={item}
+              whileHover={{ scale: 1.05 }}
+              className="bg-white rounded-2xl p-3 text-center shadow"
+            >
+              <div
+                className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mx-auto mb-2`}
+              >
                 <stat.icon size={20} className={stat.color} />
               </div>
               <p className="text-xs text-blue-800">{stat.label}</p>
@@ -244,7 +303,10 @@ export default function ProfilePage() {
 
         {/* View Appointments */}
         <div className="mt-6">
-          <Button onClick={() => router.push("/view-appointment")} className="w-full rounded-2xl h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+          <Button
+            onClick={() => router.push("/view-appointment")}
+            className="w-full rounded-2xl h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+          >
             View Appointments
           </Button>
         </div>
