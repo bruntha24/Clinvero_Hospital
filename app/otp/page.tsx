@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 export default function OTPPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-
-  const email = searchParams.get("email") || "";
+  const email = searchParams?.get("email") || "";
 
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -18,18 +17,15 @@ export default function OTPPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const requestLock = useRef(false); // 🔒 HARD LOCK
+  const requestLock = useRef(false); // prevent duplicate API calls
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]); // safe refs for OTP inputs
 
   /* ---------------- Timer ---------------- */
   useEffect(() => {
     let interval: NodeJS.Timeout;
-
     if (otpSent && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -37,11 +33,14 @@ export default function OTPPage() {
 
   /* -------- Send OTP ONLY once on mount -------- */
   useEffect(() => {
-    if (email) {
-      sendOtp();
+    if (email) sendOtp();
+
+    // Autofocus first input when component mounts
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
     }
-    // eslint-disable-next-line
-  }, []); // ✅ empty dependency → runs once only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ---------------- Input Handling ---------------- */
   const handleInput = (value: string, index: number) => {
@@ -51,19 +50,15 @@ export default function OTPPage() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value && index < 3) {
-      const next = document.getElementById(`otp-${index + 1}`);
-      next?.focus();
+    // focus next input safely
+    if (value && index < 3 && inputRefs.current[index + 1]) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
-  ) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      const prev = document.getElementById(`otp-${index - 1}`);
-      prev?.focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -74,7 +69,6 @@ export default function OTPPage() {
       return;
     }
 
-    // 🔒 Prevent duplicate API calls
     if (requestLock.current) return;
     requestLock.current = true;
 
@@ -103,12 +97,12 @@ export default function OTPPage() {
         setMessage("OTP has been sent to your email.");
       } else {
         setError(data.error || "Failed to send OTP.");
-        requestLock.current = false; // unlock if failed
+        requestLock.current = false;
       }
     } catch (err) {
       console.error(err);
       setError("Something went wrong.");
-      requestLock.current = false; // unlock if failed
+      requestLock.current = false;
     } finally {
       setLoading(false);
     }
@@ -117,7 +111,6 @@ export default function OTPPage() {
   /* ---------------- Verify OTP ---------------- */
   const handleVerify = async () => {
     const enteredOtp = otp.join("");
-
     if (enteredOtp.length !== 4) {
       setError("Enter full 4-digit OTP.");
       return;
@@ -166,12 +159,8 @@ export default function OTPPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-blue-700/80 via-teal-600/70 to-blue-500/70 backdrop-blur-sm" />
         <div className="relative z-10 text-white text-center px-10">
-          <h2 className="text-3xl font-bold mb-3">
-            Secure Verification
-          </h2>
-          <p className="text-white/80">
-            Enter the 4-digit OTP sent to your email.
-          </p>
+          <h2 className="text-3xl font-bold mb-3">Secure Verification</h2>
+          <p className="text-white/80">Enter the 4-digit OTP sent to your email.</p>
         </div>
       </motion.div>
 
@@ -190,23 +179,14 @@ export default function OTPPage() {
             <h1 className="text-2xl font-semibold">Verify OTP</h1>
           </div>
 
-          {error && (
-            <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl text-sm">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="bg-green-100 text-green-700 px-4 py-3 rounded-xl text-sm">
-              {message}
-            </div>
-          )}
+          {error && <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
+          {message && <div className="bg-green-100 text-green-700 px-4 py-3 rounded-xl text-sm">{message}</div>}
 
           <div className="flex justify-center gap-4">
             {otp.map((digit, index) => (
               <input
                 key={index}
-                id={`otp-${index}`}
+            
                 value={digit}
                 onChange={(e) => handleInput(e.target.value, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
@@ -217,9 +197,7 @@ export default function OTPPage() {
           </div>
 
           <p className="text-sm text-gray-500 text-center">
-            {timer > 0
-              ? `Resend code in ${timer}s`
-              : "Didn't receive the code?"}
+            {timer > 0 ? `Resend code in ${timer}s` : "Didn't receive the code?"}
           </p>
 
           <Button
@@ -233,7 +211,7 @@ export default function OTPPage() {
           {timer === 0 && (
             <Button
               onClick={() => {
-                requestLock.current = false; // allow resend
+                requestLock.current = false;
                 sendOtp();
               }}
               disabled={loading}
