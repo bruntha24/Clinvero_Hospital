@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -17,8 +19,8 @@ export default function OTPPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const requestLock = useRef(false); // prevent duplicate API calls
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]); // safe refs for OTP inputs
+  const requestLock = useRef(false);
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   /* ---------------- Timer ---------------- */
   useEffect(() => {
@@ -26,20 +28,17 @@ export default function OTPPage() {
     if (otpSent && timer > 0) {
       interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [otpSent, timer]);
 
   /* -------- Send OTP ONLY once on mount -------- */
   useEffect(() => {
     if (email) sendOtp();
 
-    // Autofocus first input when component mounts
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, []);
 
   /* ---------------- Input Handling ---------------- */
@@ -50,13 +49,15 @@ export default function OTPPage() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // focus next input safely
-    if (value && index < 3 && inputRefs.current[index + 1]) {
+    if (value && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -160,7 +161,9 @@ export default function OTPPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-700/80 via-teal-600/70 to-blue-500/70 backdrop-blur-sm" />
         <div className="relative z-10 text-white text-center px-10">
           <h2 className="text-3xl font-bold mb-3">Secure Verification</h2>
-          <p className="text-white/80">Enter the 4-digit OTP sent to your email.</p>
+          <p className="text-white/80">
+            Enter the 4-digit OTP sent to your email.
+          </p>
         </div>
       </motion.div>
 
@@ -179,14 +182,25 @@ export default function OTPPage() {
             <h1 className="text-2xl font-semibold">Verify OTP</h1>
           </div>
 
-          {error && <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
-          {message && <div className="bg-green-100 text-green-700 px-4 py-3 rounded-xl text-sm">{message}</div>}
+          {error && (
+            <div className="bg-red-100 text-red-700 px-4 py-3 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="bg-green-100 text-green-700 px-4 py-3 rounded-xl text-sm">
+              {message}
+            </div>
+          )}
 
           <div className="flex justify-center gap-4">
             {otp.map((digit, index) => (
               <input
                 key={index}
-            
+             ref={(el) => {
+  inputRefs.current[index] = el;
+}}
                 value={digit}
                 onChange={(e) => handleInput(e.target.value, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
@@ -197,7 +211,9 @@ export default function OTPPage() {
           </div>
 
           <p className="text-sm text-gray-500 text-center">
-            {timer > 0 ? `Resend code in ${timer}s` : "Didn't receive the code?"}
+            {timer > 0
+              ? `Resend code in ${timer}s`
+              : "Didn't receive the code?"}
           </p>
 
           <Button
